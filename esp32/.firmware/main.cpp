@@ -58,6 +58,8 @@ SET_LOOP_TASK_STACK_SIZE(16 * 1024);
 // ── Globals ───────────────────────────────────────────────────────────────────
 #if defined(CAN_DRIVER_T2CAN_DUAL)
 #define CAN_ACTIVE_BUS_COUNT 2u
+#elif defined(CAN_DRIVER_TWAI_TRIPLE)
+#define CAN_ACTIVE_BUS_COUNT 3u
 #else
 #define CAN_ACTIVE_BUS_COUNT 1u
 #endif
@@ -70,6 +72,7 @@ static FSDState   g_state = {};
 static portMUX_TYPE g_state_mux = portMUX_INITIALIZER_UNLOCKED;
 
 static CanBusId bus_id_from_index(uint8_t index) {
+    if (index == 2) return CAN_BUS_TERTIARY;
     return index == 1 ? CAN_BUS_SECONDARY : CAN_BUS_PRIMARY;
 }
 
@@ -79,6 +82,7 @@ static CanBusId configured_bus_from_index(uint8_t index) {
 }
 
 static uint8_t bus_index(CanBusId bus) {
+    if (bus == CAN_BUS_TERTIARY) return 2u;
     return bus == CAN_BUS_SECONDARY ? 1u : 0u;
 }
 
@@ -433,7 +437,11 @@ static void sync_http_can_stream_filter_if_needed() {
                 active, ids, count, scoped, bus);
     // Report actual driver state after programming, including failed changes.
     // "unknown": a filter change failed part-way, so one may be on.
-    const char *modes[CAN_BUS_COUNT] = {"down", "down"};
+    // Sized by CAN_BUS_COUNT, not a fixed pair: a two-element initializer
+    // leaves the third entry null once a third bus exists, and the strcmp
+    // below would read it.
+    const char *modes[CAN_BUS_COUNT];
+    for (uint8_t i = 0; i < CAN_BUS_COUNT; i++) modes[i] = "down";
     bool filtered = false;
     for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
         if (g_can_ok[i] && g_can[i]) modes[i] = g_can[i]->acceptanceFilterMode();
@@ -1772,7 +1780,9 @@ void setup() {
     }
     ota_verify_begin();  // a fresh OTA image stays rollback-able until it has run
 
-#if defined(CAN_DRIVER_T2CAN_DUAL) && defined(BOARD_LILYGO_T2CAN_FD)
+#if defined(CAN_DRIVER_TWAI_TRIPLE)
+    Serial.println("[CAN] Driver: ESP32-P4 triple TWAI (Waveshare ESP32-P4-WIFI6 + 3x SN65HVD230)");
+#elif defined(CAN_DRIVER_T2CAN_DUAL) && defined(BOARD_LILYGO_T2CAN_FD)
     Serial.println("[CAN] Driver: LilyGO T-2CAN FD dual CAN (TWAI can0 + MCP2518FD can1, classic CAN)");
 #elif defined(CAN_DRIVER_T2CAN_DUAL)
     Serial.println("[CAN] Driver: LilyGO T-2CAN dual CAN (TWAI can0 + MCP2515 can1)");
