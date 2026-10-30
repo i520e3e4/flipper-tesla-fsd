@@ -639,6 +639,51 @@ wiring diagram, or **Service Mode → CAN Port** where available, for which
 pair is which), but the cable run
 from the rear console to the Flipper is long.
 
+### Setup F — Waveshare ESP32-P4-WIFI6 + 3x SN65HVD230 (first three-CAN board)
+
+The ESP32-P4 has no radio of its own; WiFi comes from the on-board ESP32-C6
+coprocessor over SDIO. The P4 needs Arduino 3.x, which the official
+PlatformIO espressif32 platform does not ship (it stops at Arduino 2.0.x),
+so this env builds on the community pioarduino platform, pinned to a release
+zip (Arduino 3.3.12 / ESP-IDF 5.5.5).
+
+| Component | Price |
+|-----------|-------|
+| [Waveshare ESP32-P4-WIFI6-M](https://www.waveshare.net/shop/ESP32-P4-WIFI6.htm) (pin headers pre-soldered) | ~$12 |
+| 3x SN65HVD230 3.3V CAN transceiver module | ~$3-6 |
+| **Total** | **~$15-18** |
+
+Pin map (all three buses at 500 kbps; module VCC goes to the P4 3V3 pin —
+never 5V/VUSB, it will damage the 3.3V transceivers):
+
+| P4 GPIO | Module pin | Bus | X179 pins |
+|---------|-----------|-----|-----------|
+| GPIO 2 (TX) / GPIO 3 (RX) | module 1 RX / TX | can0 chassis | 13 (H) / 14 (L) |
+| GPIO 4 (TX) / GPIO 5 (RX) | module 2 RX / TX | can1 vehicle | 9 (H) / 10 (L) |
+| GPIO 26 (TX) / GPIO 27 (RX) | module 3 RX / TX | can2 party | 2 (H) / 3 (L) |
+
+Silkscreen direction: the module's silkscreen speaks for the module, so
+"**CAN RX**" goes to the MCU **TX** pin and "**CAN TX**" goes to the MCU
+**RX** pin. Modules silk-screened TXD/RXD (chip view) wire straight across
+(TXD to the MCU TX pin, RXD to the MCU RX pin). When in doubt, check
+continuity from the silkscreen pin to the SN65HVD230 chip's pin 1 (TXD) /
+pin 4 (RXD).
+
+Termination: the Waveshare module's 120 ohm resistor (marked 121) is
+soldered on with no jumper — desolder it for tap-only listening, or the bus
+termination drops from 60 ohm to 40 ohm. Generic green modules with a
+jumper cap: pull the cap instead.
+
+Known limitations, stated plainly: the dashboard runs over WiFi, and WiFi on
+this board is the least-proven part. The Arduino `WiFi.h` API has no radio
+on the P4 itself; the proven WiFi path is ESP-IDF `esp_wifi_remote` +
+`esp_hosted` on the C6, which the Arduino build does not integrate out of
+the box. Separately, a factory-fresh board's C6 ships slave firmware 0.0.0,
+which lacks SDIO fragmentation reassembly and fails large messages — the
+dashboard page among them — until the slave is upgraded (2.13.0 or later).
+Both points need a real-board verdict before this setup is called ready;
+the PR that adds this board says so in its description.
+
 ### MCP2515 MISO 5V to 3.3V voltage divider
 
 Almost every commodity MCP2515 module sold on AliExpress / Amazon
