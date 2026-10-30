@@ -54,6 +54,8 @@
   #define BOARD_NAME "TTGO T-Display + MCP2515"
 #elif defined(BOARD_WAVESHARE_S3)
   #define BOARD_NAME "Waveshare ESP32-S3-RS485-CAN"
+#elif defined(BOARD_WAVESHARE_P4)
+  #define BOARD_NAME "Waveshare ESP32-P4-WIFI6"
 #elif defined(BOARD_M5STACK_ATOM_MATRIX)
   #define BOARD_NAME "M5Stack ATOM Matrix + ATOMIC CAN Base"
 #elif defined(BOARD_M5STACK_ATOM)
@@ -121,6 +123,37 @@
   #define PIN_MCP_SCK        33
   #define PIN_MCP_MOSI       25
   #define PIN_MCP_CS         26
+#elif defined(BOARD_WAVESHARE_P4)
+  // Waveshare ESP32-P4-WIFI6-M + 3x SN65HVD230 (see HARDWARE.md Setup F).
+  // Module silkscreen "CAN RX" goes to the MCU TX pin and vice versa.
+  // can0 = chassis (X179 13/14), can1 = vehicle (X179 9/10),
+  // can2 = party (X179 2/3). All three buses run at 500 kbps.
+  #ifndef PIN_CAN0_TX
+  #define PIN_CAN0_TX  2
+  #endif
+  #ifndef PIN_CAN0_RX
+  #define PIN_CAN0_RX  3
+  #endif
+  #ifndef PIN_CAN1_TX
+  #define PIN_CAN1_TX  4
+  #endif
+  #ifndef PIN_CAN1_RX
+  #define PIN_CAN1_RX  5
+  #endif
+  #ifndef PIN_CAN2_TX
+  #define PIN_CAN2_TX  26
+  #endif
+  #ifndef PIN_CAN2_RX
+  #define PIN_CAN2_RX  27
+  #endif
+  // Single-pair sites (deep-sleep wake, pin summary) use can0.
+  #ifndef PIN_CAN_TX
+  #define PIN_CAN_TX   PIN_CAN0_TX
+  #endif
+  #ifndef PIN_CAN_RX
+  #define PIN_CAN_RX   PIN_CAN0_RX
+  #endif
+  #define PIN_LED            -1   // no addressable LED on this board
 #else
   #ifndef PIN_CAN_TX
   #define PIN_CAN_TX   22   // TWAI TX → ATOMIC CAN Base TX

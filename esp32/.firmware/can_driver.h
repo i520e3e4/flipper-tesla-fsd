@@ -7,10 +7,12 @@
 enum CanBusId : uint8_t {
     CAN_BUS_PRIMARY = 0,    // can0
     CAN_BUS_SECONDARY = 1,  // can1
-    CAN_BUS_COUNT = 2,
+    CAN_BUS_TERTIARY = 2,   // can2
+    CAN_BUS_COUNT = 3,
 };
 
 static inline const char *can_bus_name(CanBusId bus) {
+    if (bus == CAN_BUS_TERTIARY) return "can2";
     return bus == CAN_BUS_SECONDARY ? "can1" : "can0";
 }
 

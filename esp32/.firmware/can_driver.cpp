@@ -22,7 +22,7 @@
 #define CAN_RX_REJECT_BURST_MAX 8u
 
 // ── TWAI driver ───────────────────────────────────────────────────────────────
-#if defined(CAN_DRIVER_TWAI) || defined(CAN_DRIVER_T2CAN_DUAL)
+#if defined(CAN_DRIVER_TWAI) || defined(CAN_DRIVER_T2CAN_DUAL) || defined(CAN_DRIVER_TWAI_TRIPLE)
 
 #include "driver/twai.h"
 
@@ -34,7 +34,7 @@
 // heap cannot give that much, install_and_start() halves it down to
 // TWAI_RX_QUEUE_MIN rather than leave the bus down.
 #ifndef TWAI_RX_QUEUE_LEN
-#if defined(CONFIG_IDF_TARGET_ESP32S3)
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32P4)
 #define TWAI_RX_QUEUE_LEN 1024u
 #else
 #define TWAI_RX_QUEUE_LEN 512u
@@ -1320,13 +1320,23 @@ CanDriver *can_driver_create() {
                              PIN_MCP_MOSI, PIN_MCP_RST, PIN_MCP_INT);
 #elif defined(CAN_DRIVER_T2CAN_DUAL)
     return can_driver_create(CAN_BUS_PRIMARY);
+#elif defined(CAN_DRIVER_TWAI_TRIPLE)
+    return can_driver_create(CAN_BUS_PRIMARY);
 #else
     return nullptr;
 #endif
 }
 
 CanDriver *can_driver_create(CanBusId bus) {
-#if defined(CAN_DRIVER_T2CAN_DUAL)
+#if defined(CAN_DRIVER_TWAI_TRIPLE)
+    if (bus == CAN_BUS_SECONDARY) {
+        return new TwaiDriver("can1", PIN_CAN1_TX, PIN_CAN1_RX);
+    }
+    if (bus == CAN_BUS_TERTIARY) {
+        return new TwaiDriver("can2", PIN_CAN2_TX, PIN_CAN2_RX);
+    }
+    return new TwaiDriver("can0", PIN_CAN0_TX, PIN_CAN0_RX);
+#elif defined(CAN_DRIVER_T2CAN_DUAL)
     if (bus == CAN_BUS_SECONDARY) {
 #if defined(BOARD_LILYGO_T2CAN_FD)
         return new Mcp2518FdDriver("can1", PIN_MCP_CS, PIN_MCP_SCK, PIN_MCP_MISO,
@@ -1361,8 +1371,8 @@ void can_shutdown_all(CanDriver **buses, uint8_t count) {
     Serial.println("[CAN] Controllers stopped — bus released");
 }
 
-#if !defined(CAN_DRIVER_TWAI) && !defined(CAN_DRIVER_MCP2515) && !defined(CAN_DRIVER_T2CAN_DUAL)
-#error "Define CAN_DRIVER_TWAI, CAN_DRIVER_MCP2515, or CAN_DRIVER_T2CAN_DUAL in platformio.ini build_flags"
+#if !defined(CAN_DRIVER_TWAI) && !defined(CAN_DRIVER_MCP2515) && !defined(CAN_DRIVER_T2CAN_DUAL) && !defined(CAN_DRIVER_TWAI_TRIPLE)
+#error "Define CAN_DRIVER_TWAI, CAN_DRIVER_MCP2515, CAN_DRIVER_T2CAN_DUAL, or CAN_DRIVER_TWAI_TRIPLE in platformio.ini build_flags"
 #endif
 // The FD board is a T-2CAN in every other respect (pins, bus count, black box),
 // and those paths key off the two plain T-2CAN flags.
